@@ -11,11 +11,11 @@ package pl.maliboo.ftp.utils
 			this.port = port
 		}
 
-		public static function parseFromResponse (pasvResponse:String):PassiveSocketInfo
+		public static function parseFromReply (pasvReply:String):PassiveSocketInfo
 		{
-			var match:Array = pasvResponse.match(/(\d{1,3},){5}\d{1,3}/);
+			var match:Array = pasvReply.match(/(\d{1,3},){5}\d{1,3}/);
 			if (match == null)
-				throw new Error("Error parsing passive port! ("+pasvResponse+")");
+				throw new Error("Error parsing passive port! ("+pasvReply+")");
 			var data:Array = match[0].split(",");
 			var host:String = data.slice(0,4).join(".");
 			var port:int = parseInt(data[4])*256+parseInt(data[5]);

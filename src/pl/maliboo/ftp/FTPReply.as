@@ -1,11 +1,13 @@
 package pl.maliboo.ftp
 {
-	public class FTPResponse
+	import pl.maliboo.ftp.rfc959.ReplyType;
+
+	public class FTPReply
 	{
 		private var _code:int;
 		private var _rawBody:String;
 		
-		public function FTPResponse(rawBody:String)
+		public function FTPReply(rawBody:String)
 		{
 			var lines:Array = rawBody.match(/^.+/gm);
 			if (rawBody.charAt(3) == "-")
@@ -37,9 +39,14 @@ package pl.maliboo.ftp
 			return rawBody.charAt(3) == "-";
 		}
 		
-		public function clone():FTPResponse
+		public function clone():FTPReply
 		{
-			return new FTPResponse(rawBody);
+			return new FTPReply(rawBody);
+		}
+		
+		public function get type():int
+		{
+			return ReplyType.getType(code);
 		}
 	}
 }
