@@ -8,13 +8,15 @@ package pl.maliboo.ftp
 	import flash.utils.ByteArray;
 	
 	import pl.maliboo.ftp.events.FTPCommandEvent;
+	import pl.maliboo.ftp.rfc959.ReplyType;
 	
 	[Event(name="connect", 			type="flash.events.Event")]
 	[Event(name="close", 			type="flash.events.Event")]
 	[Event(name="ioError",			type="flash.events.IOErrorEvent")]
 	[Event(name="securityError", 	type="flash.events.SecurityErrorEvent")]
 	
-	[Event(name="response", 		type="maliboo.ftp.events.FTPCommandEvent")]
+	[Event(name="reply", 		type="maliboo.ftp.events.FTPCommandEvent")]
+	[Event(name="command", 		type="maliboo.ftp.events.FTPCommandEvent")]
 	
 	public class FTPCore extends EventDispatcher
 	{
@@ -25,7 +27,10 @@ package pl.maliboo.ftp
 		private var inputBuffer:ByteArray;
 		
 		private var _lastCommand:FTPCommand;
-		private var _lastResponse:FTPResponse;
+		private var _lastReply:FTPReply;
+		
+		private var awaitingCommands:Array;
+		private var commandQueue:Array;
 		
 		public function FTPCore(host:String=null, port:int=0)
 		{
@@ -33,9 +38,16 @@ package pl.maliboo.ftp
 				connect(host, port);
 		}
 		
-		public function get lastResponse():FTPResponse
+		private function get locked():Boolean
 		{
-			return _lastResponse.clone();
+			if (lastReply)
+				return Boolean(lastReply.type & ReplyType.CONTINUABLE);
+			return false;
+		}
+
+		public function get lastReply():FTPReply
+		{
+			return _lastReply.clone();
 		}
 
 		public function get lastCommand():FTPCommand
@@ -57,6 +69,8 @@ package pl.maliboo.ftp
 		{
 			_host = host;
 			_port = port;
+			awaitingCommands = [null];
+			commandQueue = [];
 			inputBuffer = new ByteArray();
 			releaseControlSocket();
 			controlSocket = new FTPSocket();
@@ -78,18 +92,20 @@ package pl.maliboo.ftp
 			return controlSocket.connected;
 		}
 		
-		public function sendCommand(command:String, ...rest):void
+		public function sendCommand(command:String, ...rest):FTPCommand
 		{
-			internalSendCommand(new FTPCommand(command, rest));
+			return internalSendCommand(new FTPCommand(command, rest));
 		}
 		
-		protected function internalSendCommand(command:FTPCommand):void
+		protected function internalSendCommand(command:FTPCommand):FTPCommand
 		{
 			//TODO:impl: command stack???
 			_lastCommand = command;
+			awaitingCommands.push(command);
 			controlSocket.writeUTFBytes(command.rawBody+"\n");
 			controlSocket.flush();
-			dispatchEvent(new FTPCommandEvent(FTPCommandEvent.COMMAND, null, command));
+			//dispatchEvent(new FTPCommandEvent(FTPCommandEvent.COMMAND, null, command));
+			return command;
 		}
 		
 		private function releaseControlSocket():void
@@ -111,22 +127,26 @@ package pl.maliboo.ftp
 		
 		private function handleConnect(evt:Event):void
 		{
-			dispatchEvent(new Event(Event.CONNECT));
+			dispatchEvent(evt);
+			//dispatchEvent(new Event(Event.CONNECT));
 		}
 		
 		private function handleClose(evt:Event):void
 		{
-			dispatchEvent(new Event(Event.CLOSE));
+			dispatchEvent(evt);
+			//dispatchEvent(new Event(Event.CLOSE));
 		}
 		
 		private function handleIOError(evt:IOErrorEvent):void
 		{
-			dispatchEvent(new IOErrorEvent(IOErrorEvent.IO_ERROR));
+			dispatchEvent(evt);
+			//dispatchEvent(new IOErrorEvent(IOErrorEvent.IO_ERROR));
 		}
 		
 		private function handleSecurityError(evt:SecurityErrorEvent):void
 		{
-			dispatchEvent(new SecurityErrorEvent(SecurityErrorEvent.SECURITY_ERROR));
+			dispatchEvent(evt);
+			//dispatchEvent(new SecurityErrorEvent(SecurityErrorEvent.SECURITY_ERROR));
 		}
 		
 		private function handleSocketData(evt:ProgressEvent):void
@@ -135,25 +155,31 @@ package pl.maliboo.ftp
 			parseBuffer();
 		}
 
+		//TODO: trzeba rozbic input buffer na Reply! Inaczej potrafi zbic kilka w jedno!
+		//Trzeba czytac liniami, ale jak sie zabezpieczyc przed tym, 
+		//ze ostatnia jeszcze sie nie skonczyla?
 		private function parseBuffer():void
 		{
 			inputBuffer.position = 0;
-			var responseString:String = inputBuffer.readUTFBytes(inputBuffer.bytesAvailable);
-			var response:FTPResponse;
+			var replyString:String = inputBuffer.readUTFBytes(inputBuffer.bytesAvailable);
+			var reply:FTPReply;
 			try
 			{
-				response = new FTPResponse(responseString);
+				reply = new FTPReply(replyString);
 			}
 			catch(e:Error)
 			{
 			}
 			finally
 			{
-				if (response)
+				if (reply)
 				{
 					inputBuffer.clear();
-					_lastResponse = response;
-					dispatchEvent(new FTPCommandEvent(FTPCommandEvent.RESPONSE, response));
+					_lastReply = reply;
+					var comm:FTPCommand = awaitingCommands.shift() as FTPCommand;
+					if (comm != null)
+						comm.reply = reply;
+					dispatchEvent(new FTPCommandEvent(FTPCommandEvent.REPLY, reply));
 				}
 			}
 		}

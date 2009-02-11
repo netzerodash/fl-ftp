@@ -2,7 +2,6 @@ package pl.maliboo.ftp.events
 {
 	import flash.events.Event;
 	
-	import pl.maliboo.ftp.FTPResponse;
 	
 	public class FTPConnectionEvent extends Event
 	{

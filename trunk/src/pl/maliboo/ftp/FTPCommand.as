@@ -1,12 +1,18 @@
 package pl.maliboo.ftp
 {
-	internal class FTPCommand
+	import flash.events.EventDispatcher;
+	
+	import pl.maliboo.ftp.events.FTPCommandEvent;
+	
+	[Event(name="reply", 		type="maliboo.ftp.events.FTPCommandEvent")]
+	
+	public class FTPCommand extends EventDispatcher
 	{
 		private  static const ARGS_SEPARATOR:String = " ";
 		
 		private var _name:String;
 		private var _args:Array;
-		private var _response:FTPResponse;
+		private var _reply:FTPReply;
 		
 		public function FTPCommand(name:String, args:Array=null)
 		{
@@ -14,9 +20,15 @@ package pl.maliboo.ftp
 			_args = args? args : [];
 		}
 		
-		public function get response():FTPResponse
+		public function set reply(reply:FTPReply):void
 		{
-			return _response;
+			_reply = reply;
+			dispatchEvent(new FTPCommandEvent(FTPCommandEvent.REPLY, reply, this));
+		}
+		
+		public function get reply():FTPReply
+		{
+			return _reply;
 		}
 		
 		public function get name():String
