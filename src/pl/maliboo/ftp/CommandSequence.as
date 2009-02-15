@@ -79,7 +79,7 @@ package pl.maliboo.ftp
 				return;
 			dispatchEvent(evt);
 			if (evt.reply.type & ReplyType.NEGATIVE)
-				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "Reply code was negative", evt.reply.code));
+				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "Reply code was negative: "+evt.reply.code));
 			else
 				sendNext();
 		}
