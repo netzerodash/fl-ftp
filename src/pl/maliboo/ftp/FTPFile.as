@@ -2,9 +2,11 @@ package pl.maliboo.ftp
 {
 	public class FTPFile
 	{
-		//TODO:remote-path??!?! Moznaby stosowac jako kolejke!?
-		public function FTPFile()
+		private var _name:String;
+		
+		public function FTPFile(name:String)
 		{
+			_name = name;
 		}
 
 
@@ -13,59 +15,59 @@ package pl.maliboo.ftp
 			return 0;
 		}
 		
-		public function get creationDate:Date
+		public function get creationDate():Date
 		{
 			return new Date();
 		}
 		
-		public function get creator:String
+		public function get creator():String
 		{
 			return "";
 		}
 		
-		public function get extension:String
+		public function get extension():String
 		{
 			return "";
 		}
 
-		public function get modificationDate:Date
+		public function get modificationDate():Date
 		{
 			return new Date();
 		}
 		
-		public function get name:String
+		public function get name():String
 		{
-			return "";
+			return _name;
 		}
 		
-		public function get size:uint
+		public function get size():uint
 		{
 			return 0;
 		}
 		
 		
-		public function get type:String
+		public function get type():String
 		{
 			return "";
 		}
 		
 		
-		public function get isDirectory:Boolean
+		public function get isDirectory():Boolean
 		{
 			return false;
 		}
 		
-		public function get isHidden:Boolean
+		public function get isHidden():Boolean
 		{
 			return false;
 		}
 		
-		public function get isSymbolicLink:Boolean
+		public function get isSymbolicLink():Boolean
 		{
 			return false;
 		}
 		
-		public function get nativePath:String
+		public function get nativePath():String
 		{
 			return "";
 		}
@@ -74,7 +76,7 @@ package pl.maliboo.ftp
 		{
 		}*/
 		
-		public function get url:String
+		public function get url():String
 		{
 			return "";
 		}
@@ -84,4 +86,5 @@ package pl.maliboo.ftp
 		{
 			return (filePermissions%(10*access)/access>>0) & permission;
 		}
+	}
 }

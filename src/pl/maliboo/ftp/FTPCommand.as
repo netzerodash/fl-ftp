@@ -5,6 +5,7 @@ package pl.maliboo.ftp
 	import pl.maliboo.ftp.events.FTPCommandEvent;
 	
 	[Event(name="reply", 		type="maliboo.ftp.events.FTPCommandEvent")]
+	[Event(name="command", 		type="maliboo.ftp.events.FTPCommandEvent")]
 	
 	public class FTPCommand extends EventDispatcher
 	{
@@ -20,7 +21,7 @@ package pl.maliboo.ftp
 			_args = args? args : [];
 		}
 		
-		public function set reply(reply:FTPReply):void
+		internal function setReply(reply:FTPReply):void
 		{
 			_reply = reply;
 			dispatchEvent(new FTPCommandEvent(FTPCommandEvent.REPLY, reply, this));
@@ -38,17 +39,24 @@ package pl.maliboo.ftp
 		
 		public function get args():Array
 		{
-			return _args.splice();
+			return _args.slice();
 		}
 		
 		public function get rawBody():String
 		{
+			if (_args.length == 0)
+				return name;
 			return name + ARGS_SEPARATOR + _args.join(ARGS_SEPARATOR);
 		}
 		
 		public function clone():FTPCommand
 		{
 			return new FTPCommand(name, args);
+		}
+		
+		override public function toString():String
+		{
+			return rawBody;
 		}
 	}
 }

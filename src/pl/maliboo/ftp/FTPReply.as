@@ -9,16 +9,22 @@ package pl.maliboo.ftp
 		
 		public function FTPReply(rawBody:String)
 		{
+			if (!rawBody.match(/^\d{3}/))
+				throw new ArgumentError("Body is malformed! Code not found!");
 			var lines:Array = rawBody.match(/^.+/gm);
 			if (rawBody.charAt(3) == "-")
 			{
+				if (lines.length == 1)
+					throw new ArgumentError("Body is malformed! Expected to be multiline!");
 				var lastLine:String = lines[lines.length-1];
-				var has4:Boolean = lastLine.length >= 4;
-				var isEndLine:Boolean = lastLine.charAt(3) != "-";
-				var hasNaN:Boolean = isNaN(Number(lastLine.charAt(0)));
-				if (!lastLine && !isEndLine && hasNaN)
-					throw new ArgumentError("Body is malformed!");
+				var tooShort:Boolean = lastLine.length < 4;
+				var isContinueLine:Boolean = lastLine.charAt(3) == "-";
+				var startsWithNonDigit:Boolean = lastLine.match(/^\d{1,3}[^-]/) == null;
+				if (tooShort || isContinueLine || startsWithNonDigit)
+					throw new ArgumentError("Body is malformed! Last line not found!");
 			}
+			else if (lines.length > 1)
+				throw new ArgumentError("Body is malformed! Expected to be singleline!");
 			
 			_rawBody = rawBody;
 			_code = parseInt(_rawBody.substr(0, 3));
@@ -47,6 +53,11 @@ package pl.maliboo.ftp
 		public function get type():int
 		{
 			return ReplyType.getType(code);
+		}
+		
+		public function toString():String
+		{
+			return rawBody;
 		}
 	}
 }
