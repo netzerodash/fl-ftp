@@ -39,6 +39,12 @@ package pl.maliboo.ftp
 			return _isRunning;
 		}
 
+		public function prependCommand(comm:FTPCommand):FTPCommand
+		{
+			commands.unshift(comm);
+			return comm;
+		}
+		
 		public function addCommand(comm:FTPCommand):FTPCommand
 		{
 			commands.push(comm);
@@ -80,8 +86,7 @@ package pl.maliboo.ftp
 			dispatchEvent(evt);
 			if (evt.reply.type & ReplyType.NEGATIVE)
 				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, "Reply code was negative: "+evt.reply.code));
-			else
-				sendNext();
+			sendNext();
 		}
 	}
 }
