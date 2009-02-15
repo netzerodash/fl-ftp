@@ -41,6 +41,7 @@ package pl.maliboo.ftp.rfc959
 		
 		//Known:
 		public static const FEAT:String = "FEAT";		
+		public static const SIZE:String = "SIZE";		
 		
 		
 		//Shortcuts:

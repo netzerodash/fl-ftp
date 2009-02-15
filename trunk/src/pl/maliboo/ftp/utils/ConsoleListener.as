@@ -4,22 +4,21 @@ package pl.maliboo.ftp.utils
 	import flash.events.IOErrorEvent;
 	import flash.events.SecurityErrorEvent;
 	
-	import pl.maliboo.ftp.FTPCore;
+	import pl.maliboo.ftp.FTPClient;
+	import pl.maliboo.ftp.FTPCommand;
 	import pl.maliboo.ftp.events.FTPCommandEvent;
-	import pl.maliboo.ftp.rfc959.Commands;
-	import pl.maliboo.ftp.rfc959.ReplyCodes;
 
 	public class ConsoleListener
 	{
-		private var ftpConnection:FTPCore;
+		private var ftpConnection:FTPClient;
 		
-		public function ConsoleListener(ftpConn:FTPCore)
+		public function ConsoleListener(ftpConn:FTPClient)
 		{
 			ftpConnection = ftpConn;
 			ftpConnection.addEventListener(Event.CONNECT, handleConnect);
 			ftpConnection.addEventListener(Event.CLOSE, handleClose);
 			ftpConnection.addEventListener(FTPCommandEvent.COMMAND, handleCommand);
-			ftpConnection.addEventListener(FTPCommandEvent.RESPONSE, handleResponse);
+			ftpConnection.addEventListener(FTPCommandEvent.REPLY, handleReply);
 			ftpConnection.addEventListener(IOErrorEvent.IO_ERROR, handleIOError);
 			ftpConnection.addEventListener(SecurityErrorEvent.SECURITY_ERROR, handleSecurity);
 		}
@@ -29,7 +28,7 @@ package pl.maliboo.ftp.utils
 			ftpConnection.removeEventListener(Event.CONNECT, handleConnect);
 			ftpConnection.removeEventListener(Event.CLOSE, handleClose);
 			ftpConnection.removeEventListener(FTPCommandEvent.COMMAND, handleCommand);
-			ftpConnection.removeEventListener(FTPCommandEvent.RESPONSE, handleResponse);
+			ftpConnection.removeEventListener(FTPCommandEvent.REPLY, handleReply);
 			ftpConnection.removeEventListener(IOErrorEvent.IO_ERROR, handleIOError);
 			ftpConnection.removeEventListener(SecurityErrorEvent.SECURITY_ERROR, handleSecurity);
 		}
@@ -47,34 +46,15 @@ package pl.maliboo.ftp.utils
 		
 		private function handleCommand(evt:FTPCommandEvent):void
 		{
-			trace(">"+evt.command.rawBody);
+			trace("$>", evt.command.toString());
+			//evt.command.addEventListener(FTPCommandEvent.REPLY, handleCommandReply);
 		}
 		
-		private function handleResponse(evt:FTPCommandEvent):void
+		private function handleReply(evt:FTPCommandEvent):void
 		{
-			//trace("Response");
-			trace(evt.response.rawBody);
-			switch (evt.response.code)
-			{
-				case ReplyCodes.SERVICE_READY:
-					ftpConnection.sendCommand(Commands.USER, "");
-					ftpConnection.sendCommand(Commands.PASS, "");
-					ftpConnection.sendCommand(Commands.SYST);
-					ftpConnection.sendCommand(Commands.FEAT);
-					ftpConnection.sendCommand(Commands.HELP);										
-					ftpConnection.sendCommand(Commands.TYPE, "I");
-					ftpConnection.sendCommand(Commands.LIST);
-					break;
-				case ReplyCodes.USER_OK:
-					//ftpConnection.sendCommand(Commands.PASS, "flftp");
-					break;
-				case ReplyCodes.LOGGED_IN:
-					break;
-				case ReplyCodes.COMMAND_OK:
-					break;
-				default:
-					trace("What to do with", evt.response.code);
-			}
+			//trace("Reply incoming");
+			trace(evt.reply.toString());
+			trace("-------------------------");
 		}
 		
 		private function handleIOError(evt:IOErrorEvent):void
@@ -84,7 +64,14 @@ package pl.maliboo.ftp.utils
 		
 		private function handleSecurity(evt:SecurityErrorEvent):void
 		{
-			trace("SecError");
+			trace(evt);
+		}
+		
+		private function handleCommandReply(evt:FTPCommandEvent):void
+		{
+			trace("$>", (evt.target as FTPCommand).toString());
+			trace(evt.reply.toString());
+			trace("-------------------------");
 		}
 
 	}
