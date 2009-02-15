@@ -19,8 +19,14 @@ package pl.maliboo.ftp
 	[Event(name="reply", 		type="maliboo.ftp.events.FTPCommandEvent")]
 	[Event(name="command", 		type="maliboo.ftp.events.FTPCommandEvent")]
 	
+	/**
+	 * FTP core class. Intentionally levae internal.
+	 * 
+	 * More info about FTP protocol: http://www.faqs.org/rfcs/rfc959.html
+	 */ 
 	internal class FTPCore extends EventDispatcher
 	{
+		protected static const CRLF:String = "\r\n";
 		private static const MIN_TIMEOUT:uint = 250;
 		
 		private var _host:String;
@@ -103,7 +109,8 @@ package pl.maliboo.ftp
 			controlSocket.connect(host, port);
 		}
 		
-		public function openDataSocket(info:PassiveSocketInfo):FTPSocket
+		//TODO: Should be protected??
+		/*protected*/public function openDataSocket(info:PassiveSocketInfo):FTPSocket
 		{
 			try
 			{
@@ -112,7 +119,13 @@ package pl.maliboo.ftp
 			catch(e:Error){}
 			dataSocket = new FTPSocket();
 			awaitingCommands.push(null); //After succ transfer we're awaiting for additional reply
-			setTimeout(dataSocket.connect, 10, info.host, info.port);
+			
+			//BUG: Watch for context! See: http://blog.vandenoostende.com/?p=68
+			var contextKeeper:Function = function ():void
+			{
+				dataSocket.connect(info.host, info.port);
+			}
+			setTimeout(contextKeeper, 10);
 			return dataSocket;
 		}
 		
@@ -141,7 +154,7 @@ package pl.maliboo.ftp
 			clearTimeout(timeoutInterval);
 			_lastCommand = command;
 			awaitingCommands.push(command);
-			controlSocket.writeUTFBytes(command.rawBody+"\r\n");
+			controlSocket.writeUTFBytes(command.rawBody+CRLF); //Should be writeMultiBytes?
 			controlSocket.flush();
 			dispatchEvent(new FTPCommandEvent(FTPCommandEvent.COMMAND, null, command));
 			timeoutInterval = setTimeout(fireTimeout, timeout);
