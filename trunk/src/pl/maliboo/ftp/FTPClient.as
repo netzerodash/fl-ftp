@@ -12,7 +12,6 @@ package pl.maliboo.ftp
 	import pl.maliboo.ftp.events.FTPTransferEvent;
 	
 	[Event(name="ioError",	type="flash.events.IOErrorEvent")]
-	[Event(name="progress",	type="flash.events.ProgressEvent")]
 	[Event(name="complete",	type="flash.events.Event")]
 	[Event(name="init",		type="flash.events.Event")]
 	

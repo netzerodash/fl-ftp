@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowedApplication xmlns="http://ns.adobe.com/mxml/2009" layout="absolute"
+	creationComplete="doBytes()" width="500" height="400" currentState="initState">
+	<states>
+		<State name="initState"/>
+		<State name="upload"/>
+	</states>
+	<Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import flash.filesystem.FileMode;
+			import flash.filesystem.FileStream;
+			import flash.filesystem.File;
+			import pl.maliboo.ftp.events.FTPTransferEvent;
+			import mx.graphics.Rect;
+			import flash.utils.setTimeout;
+			import pl.maliboo.ftp.FTPFile;
+			import pl.maliboo.ftp.FTPClient;
+			import pl.maliboo.ftp.utils.PassiveSocketInfo;
+			import pl.maliboo.ftp.rfc959.Commands;
+			import pl.maliboo.ftp.FTPCommand;
+			import pl.maliboo.ftp.CommandSequence;
+			import pl.maliboo.ftp.events.FTPCommandEvent;
+			import pl.maliboo.ftp.FTPCore;
+			import pl.maliboo.ftp.utils.ConsoleListener;
+			
+			
+			private var conn:FTPClient;
+			private var seq:CommandSequence;
+			private var list:ConsoleListener;
+			
+			private function doBytes():void
+			{
+				conn = new FTPClient();
+				list = new ConsoleListener(conn);
+			}
+
+			protected function fxtextinput1_enterHandler(event:Event):void
+			{
+				conn.sendCommand(input.text).addEventListener(FTPCommandEvent.REPLY, handleReply);
+				input.text = "";
+			}
+			
+			private function handleConnect(evt:Event):void
+			{
+				seq.start();
+				//setTimeout(conn.downloadFile, 2000, new FTPFile("bitmap.rar"), new ByteArray());
+				//setTimeout(fakeUpload, 2000);
+			}
+			
+			private function handleReply(evt:FTPCommandEvent):void
+			{
+				output.appendText("> "+evt.command.toString().replace(/pass.*/i, "{PASS HIDDEN}")+"\n");
+				output.appendText(evt.reply.toString()+"\n\n");
+				input.setFocus();
+			}
+			
+
+			protected function fxbutton1_clickHandler(event:MouseEvent):void
+			{
+				seq = new CommandSequence(conn);
+				seq.addCommand(new FTPCommand(Commands.USER, [login.text])).addEventListener(FTPCommandEvent.REPLY, handleReply);
+				seq.addCommand(new FTPCommand(Commands.PASS, [pass.text])).addEventListener(FTPCommandEvent.REPLY, handleReply);
+				conn.addEventListener(Event.CONNECT, handleConnect);
+				conn.connect(server.text, parseInt(port.text));
+			}
+
+
+			protected function fxbutton2_clickHandler(event:MouseEvent):void
+			{
+				if (!conn.connected)
+				{
+					Alert.show("Try to connect to something first?", "Hey!");
+					return;
+				}
+				var file:File = new File();
+				file.addEventListener(Event.SELECT, handleFileSelect);
+				file.browse();
+			}
+			
+			private function handleFileSelect(evt:Event):void
+			{
+				var file:File = evt.target as File;
+				currentState = "upload";
+				uploadProgress.label = "Initiating transfer...";
+				var stream:FileStream = new FileStream();
+				stream.open(file, FileMode.READ);
+				
+				
+				
+				conn.addEventListener(FTPTransferEvent.TRANSFER_INIT, function (evt:FTPTransferEvent):void
+				{
+					uploadProgress.label = "Uploading file: "+file.name+" %3%%";
+				});
+				
+				conn.addEventListener(FTPTransferEvent.TRANSFER_PROGRESS, function (evt:FTPTransferEvent):void
+				{
+					uploadProgress.setProgress(evt.bytesTransferred, evt.bytesTotal);
+				});
+				
+				conn.addEventListener(FTPTransferEvent.TRANSFER_COMPLETE, function (evt:FTPTransferEvent):void
+				{
+					currentState = "";
+				});
+				conn.uploadFile(new FTPFile(file.name), stream);
+			}
+
+		]]>
+	</Script>
+	
+	<VGroup x="0" y="0" width="100%" height="100%" includeIn="initState">
+		<FxTextArea id="output" width="100%" height="100%"/>
+		<FxTextInput id="input" enter="fxtextinput1_enterHandler(event)" width="100%" height="21"/>
+		<HGroup>
+			<Label text="Server:"/>
+			<FxTextInput id="server" text=""/>
+			<Label text="Port:"/>
+			<FxTextInput id="port" text="21" width="30"/>
+			<Spacer width="100%" />
+			<FxButton label="Upload file" click="fxbutton2_clickHandler(event)" />
+		</HGroup>
+		<HGroup>
+			<Label text="Login:"/>
+			<FxTextInput id="login" text=""/>
+			<Label text="Password:"/>
+			<FxTextInput id="pass" displayAsPassword="true" text=""/>
+			<FxButton label="Login" click="fxbutton1_clickHandler(event)"/>
+		</HGroup>
+	</VGroup>
+	<ProgressBar id="uploadProgress" mode="manual" includeIn="upload" x="0" y="0"/>
+</WindowedApplication>
