@@ -69,7 +69,7 @@ package pl.maliboo.ftp
 		
 		public function get nativePath():String
 		{
-			return "";
+			return name;
 		}
 		
 /*		public function get parent:File
