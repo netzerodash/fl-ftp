@@ -13,6 +13,7 @@ package pl.maliboo.ftp.helpers
 	import pl.maliboo.ftp.FTPClient;
 	import pl.maliboo.ftp.FTPCommand;
 	import pl.maliboo.ftp.FTPFile;
+	import pl.maliboo.ftp.FTPReply;
 	import pl.maliboo.ftp.PasvHelper;
 	import pl.maliboo.ftp.events.FTPCommandEvent;
 	import pl.maliboo.ftp.events.FTPTransferEvent;
@@ -114,28 +115,20 @@ package pl.maliboo.ftp.helpers
 			socket.flush();
 		}
 		
-		private function handleSizeGet(evt:FTPCommandEvent):void
+		private function handleSizeGet(reply:FTPReply):void
 		{
-			if (evt.reply.code == ReplyCodes.FILE_STATUS)
+			var sizeMatch:Array = reply.rawBody.match(/^\d{1,3}\s+(\d{1,})$/);
+			var serverSize:uint = parseInt(sizeMatch[1]) as uint;
+			bufferDiff = position - serverSize;
+			position = serverSize;
+			if (position == bytesTotal)
 			{
-				commandSequence.removeEventListener(FTPCommandEvent.REPLY, handleSizeGet);
-				var sizeMatch:Array = evt.reply.rawBody.match(/^\d{1,3}\s+(\d{1,})$/);
-				var serverSize:uint = parseInt(sizeMatch[1]) as uint;
-				bufferDiff = position - serverSize;
-				position = serverSize;
-				if (position == bytesTotal)
-				{
-					canFinalize = true;
-				}
-				else
-				{
-					ftp.dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_PROGRESS, file, 
-						bytesTotal, position));
-				}
+				canFinalize = true;
 			}
 			else
 			{
-				//TODO: What should I do!?
+				ftp.dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_PROGRESS, file, 
+					bytesTotal, position));
 			}
 		}
 			
@@ -168,7 +161,13 @@ package pl.maliboo.ftp.helpers
 			switch (evt.reply.code)
 			{
 				case ReplyCodes.FILE_STATUS:
-					handleSizeGet(evt); break;
+					handleSizeGet(evt.reply); break;
+				case ReplyCodes.ENTERING_PASV:
+				case ReplyCodes.COMMAND_OK:
+				//case ReplyCodes.DATA_CONN_CLOSE:
+					break;
+				default:
+					trace("Hmmm, what to do with: "+evt.reply.code);
 			}
 		}
 		
