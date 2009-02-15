@@ -48,7 +48,7 @@ package pl.maliboo.ftp.helpers
 			//TYPE_BINARY
 			//PASV
 			appendCommand(new FTPCommand(Commands.APPE, [file.nativePath]));
-			commandSequence.addEventListener(FTPCommandEvent.REPLY, handleSizeGet);
+			commandSequence.addEventListener(FTPCommandEvent.REPLY, handleSequenceReply);
 			commandSequence.addEventListener(ErrorEvent.ERROR, handleError);
 		}
 		
@@ -159,6 +159,16 @@ package pl.maliboo.ftp.helpers
 			else
 			{
 				//TODO: What should I do?!
+			}
+		}
+		
+		
+		private function handleSequenceReply(evt:FTPCommandEvent):void
+		{
+			switch (evt.reply.code)
+			{
+				case ReplyCodes.FILE_STATUS:
+					handleSizeGet(evt); break;
 			}
 		}
 		
