@@ -80,16 +80,6 @@ package pl.maliboo.ftp.helpers
 			//throw new IllegalOperationError("Must override in subclass!");
 		}
 		
-		override protected function ioErrorHandler(evt:IOErrorEvent):void
-		{
-			throw new IllegalOperationError("Must override in subclass!");
-		}
-		
-		override protected function securityErrorHandler(evt:SecurityErrorEvent):void
-		{
-			throw new IllegalOperationError("Must override in subclass!");
-		}
-		
 		private function loopSequence():void
 		{
 			restartSequence();

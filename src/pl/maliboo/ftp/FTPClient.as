@@ -6,6 +6,7 @@ package pl.maliboo.ftp
 	
 	import pl.maliboo.ftp.events.FTPTransferEvent;
 	import pl.maliboo.ftp.helpers.DownloadHelper;
+	import pl.maliboo.ftp.helpers.ListHelper;
 	import pl.maliboo.ftp.helpers.UploadHelper;
 	
 	[Event(name="transferInit",		type="pl.maliboo.ftp.events.FTPTransferEvent")]
@@ -41,6 +42,16 @@ package pl.maliboo.ftp
 			return super.inTransaction || transferLock;
 		}
 		
+		
+		protected function makePasvAction(pasvHelper:PasvHelper):void
+		{
+			if (inTransaction) //Maybe dataConnOpen?
+				throw new IllegalOperationError("Data connection allready open!");
+			transferLock = true;
+			transferHelper = pasvHelper;
+			transferHelper.start();
+		}
+		
 		/**
 		 * Downloads a file from server to stream (ByteArray, FileStream). Stream must be valid IDataOutput implementor.
 		 * 
@@ -51,11 +62,7 @@ package pl.maliboo.ftp
 		//TODO: move to class (like upload)
 		public function downloadFile(file:FTPFile, stream:IDataOutput):void
 		{
-			if (inTransaction) //Maybe dataConnOpen?
-				throw new IllegalOperationError("Data connection allready open!");
-			transferLock = true;
-			transferHelper = new DownloadHelper(this, file, stream);
-			transferHelper.start();
+			makePasvAction(new DownloadHelper(this, file, stream));
 		}
 		
 		
@@ -80,17 +87,18 @@ package pl.maliboo.ftp
 		//TODO: implement client lock on transfer
 		public function uploadFile(file:FTPFile, stream:IDataInput):void
 		{
-			if (inTransaction) //A moze dataConnOpen?
-				throw new IllegalOperationError("Data connection allready open!");
-			transferLock = true;
-			transferHelper = new UploadHelper(this, file, stream, uploadSize);
-			transferHelper.start();
+			makePasvAction(new UploadHelper(this, file, stream, uploadSize));
 		}
 		
 		public function cancelTransfer():void
 		{
 			transferHelper.abort();
 			transferLock = false;
+		}
+		
+		public function listDirectory(dir:String):void
+		{
+			makePasvAction(new ListHelper(this, dir));
 		}
 		
 		private function handleComplete(evt:FTPTransferEvent):void
