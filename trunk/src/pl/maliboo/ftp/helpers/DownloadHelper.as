@@ -63,16 +63,6 @@ package pl.maliboo.ftp.helpers
 			ftp.dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_PROGRESS, file, bytesTotal, progress));
 		}
 		
-		override protected function ioErrorHandler(evt:IOErrorEvent):void
-		{
-			throw new IllegalOperationError("Must override in subclass!");
-		}
-		
-		override protected function securityErrorHandler(evt:SecurityErrorEvent):void
-		{
-			throw new IllegalOperationError("Must override in subclass!");
-		}
-		
 		private function handleReply(evt:FTPCommandEvent):void
 		{
 			switch (evt.reply.code)

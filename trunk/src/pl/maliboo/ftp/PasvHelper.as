@@ -105,12 +105,14 @@ package pl.maliboo.ftp
 		
 		protected function ioErrorHandler(evt:IOErrorEvent):void
 		{
-			throw new IllegalOperationError("Must override in subclass!");
+			//throw new IllegalOperationError("Must override in subclass!");
+			ftp.dispatchEvent(evt);
 		}
 		
 		protected function securityErrorHandler(evt:SecurityErrorEvent):void
 		{
-			throw new IllegalOperationError("Must override in subclass!");
+			//throw new IllegalOperationError("Must override in subclass!");
+			ftp.dispatchEvent(evt);
 		}
 	}
 }
