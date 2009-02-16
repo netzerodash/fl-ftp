@@ -1,10 +1,7 @@
 package pl.maliboo.ftp.helpers
 {
-	import flash.errors.IllegalOperationError;
 	import flash.events.Event;
-	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
-	import flash.events.SecurityErrorEvent;
 	import flash.utils.ByteArray;
 	import flash.utils.IDataOutput;
 	
@@ -49,6 +46,7 @@ package pl.maliboo.ftp.helpers
 		override protected function closeHandler(evt:Event):void
 		{
 			//throw new IllegalOperationError("Must override in subclass!");
+			progressHandler(null); //Check socket for bytes!
 			ftp.dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_COMPLETE, file, bytesTotal, progress));
 		}
 		

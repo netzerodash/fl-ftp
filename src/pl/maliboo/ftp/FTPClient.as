@@ -1,6 +1,10 @@
 package pl.maliboo.ftp
 {
 	import flash.errors.IllegalOperationError;
+	import flash.events.ErrorEvent;
+	import flash.events.Event;
+	import flash.events.IOErrorEvent;
+	import flash.events.SecurityErrorEvent;
 	import flash.utils.IDataInput;
 	import flash.utils.IDataOutput;
 	
@@ -8,6 +12,7 @@ package pl.maliboo.ftp
 	import pl.maliboo.ftp.helpers.DownloadHelper;
 	import pl.maliboo.ftp.helpers.ListHelper;
 	import pl.maliboo.ftp.helpers.UploadHelper;
+	import pl.maliboo.ftp.utils.PassiveSocketInfo;
 	
 	[Event(name="transferInit",		type="pl.maliboo.ftp.events.FTPTransferEvent")]
 	[Event(name="transferError",	type="pl.maliboo.ftp.events.FTPTransferEvent")]
@@ -31,9 +36,6 @@ package pl.maliboo.ftp
 		public function FTPClient(host:String=null, port:int=0)
 		{
 			transferLock = false;
-			//Remove locks after error and complete:
-			addEventListener(FTPTransferEvent.TRANSFER_COMPLETE, handleComplete);
-			addEventListener(FTPTransferEvent.TRANSFER_ERROR, handleComplete);
 			super(host, port);
 		}
 		
@@ -42,6 +44,14 @@ package pl.maliboo.ftp
 			return super.inTransaction || transferLock;
 		}
 		
+		override public function openDataSocket(info:PassiveSocketInfo):FTPSocket
+		{
+			var socket:FTPSocket = super.openDataSocket(info);
+			socket.addEventListener(Event.CLOSE, releaseDataSocketLock);
+			socket.addEventListener(IOErrorEvent.IO_ERROR, releaseDataSocketLock);
+			socket.addEventListener(SecurityErrorEvent.SECURITY_ERROR, releaseDataSocketLock);
+			return socket;
+		}
 		
 		protected function makePasvAction(pasvHelper:PasvHelper):void
 		{
@@ -101,11 +111,12 @@ package pl.maliboo.ftp
 			makePasvAction(new ListHelper(this, dir));
 		}
 		
-		private function handleComplete(evt:FTPTransferEvent):void
+		private function releaseDataSocketLock(evt:Event):void
 		{
 			//Locks are bad, maybe other idea?
-			trace("Lock removed!");
 			transferLock = false;
+			if (evt is ErrorEvent)
+				dispatchEvent(evt);
 		}
 	}
 }	
