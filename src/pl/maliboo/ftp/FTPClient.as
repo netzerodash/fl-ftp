@@ -1,15 +1,11 @@
 package pl.maliboo.ftp
 {
 	import flash.errors.IllegalOperationError;
-	import flash.events.Event;
-	import flash.events.ProgressEvent;
-	import flash.net.Socket;
-	import flash.utils.ByteArray;
 	import flash.utils.IDataInput;
 	import flash.utils.IDataOutput;
 	
-	import pl.maliboo.ftp.events.FTPCommandEvent;
 	import pl.maliboo.ftp.events.FTPTransferEvent;
+	import pl.maliboo.ftp.helpers.DownloadHelper;
 	import pl.maliboo.ftp.helpers.UploadHelper;
 	
 	[Event(name="transferInit",		type="pl.maliboo.ftp.events.FTPTransferEvent")]
@@ -21,11 +17,8 @@ package pl.maliboo.ftp
 	
 	public class FTPClient extends FTPCore
 	{
-		
-		private var downStream:IDataOutput;
-		private var upStream:IDataInput;
-		private var progresBytes:uint;
-		private var transferSeq:CommandSequence;
+	
+		private var transferHelper:PasvHelper;
 		private var ftpFile:FTPFile;
 		
 		private var transferLock:Boolean;
@@ -37,6 +30,9 @@ package pl.maliboo.ftp
 		public function FTPClient(host:String=null, port:int=0)
 		{
 			transferLock = false;
+			//Remove locks after error and complete:
+			addEventListener(FTPTransferEvent.TRANSFER_COMPLETE, handleComplete);
+			addEventListener(FTPTransferEvent.TRANSFER_ERROR, handleComplete);
 			super(host, port);
 		}
 		
@@ -57,12 +53,9 @@ package pl.maliboo.ftp
 		{
 			if (inTransaction) //Maybe dataConnOpen?
 				throw new IllegalOperationError("Data connection allready open!");
-			//transferLock = true;
-			downStream = stream;
-			ftpFile = file;
-			transferSeq = new DownloadSequence(this, ftpFile.name);
-			transferSeq.addEventListener(FTPCommandEvent.REPLY, handleDownloadStart);
-			transferSeq.start();
+			transferLock = true;
+			transferHelper = new DownloadHelper(this, file, stream);
+			transferHelper.start();
 		}
 		
 		
@@ -89,75 +82,22 @@ package pl.maliboo.ftp
 		{
 			if (inTransaction) //A moze dataConnOpen?
 				throw new IllegalOperationError("Data connection allready open!");
-			//transferLock = true;
-			upStream = stream;
-			ftpFile = file;
-			uploadHelper = new UploadHelper(this, file, stream, uploadSize);
-			uploadHelper.start();
+			transferLock = true;
+			transferHelper = new UploadHelper(this, file, stream, uploadSize);
+			transferHelper.start();
 		}
 		
 		public function cancelTransfer():void
 		{
-			//TODO: impl
+			transferHelper.abort();
+			transferLock = false;
 		}
 		
-		
-		private function writeToStream(socket:Socket, stream:IDataOutput):void
+		private function handleComplete(evt:FTPTransferEvent):void
 		{
-			progresBytes += socket.bytesAvailable;
-			var inputBuffer:ByteArray = new ByteArray();
-			socket.readBytes(inputBuffer);
-			stream.writeBytes(inputBuffer);
-		}
-		
-		private function handleDownloadStart(evt:FTPCommandEvent):void
-		{
-			transferSeq.removeEventListener(evt.type, handleDownloadStart);
-			dataSocket.addEventListener(ProgressEvent.SOCKET_DATA, handleDownloadProgress);
-			dataSocket.addEventListener(Event.CLOSE, handleDownloadComplete);
-			progresBytes = 0;
-			dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_INIT, ftpFile));
-		}
-		
-		private function handleDownloadProgress(evt:ProgressEvent):void
-		{
-			writeToStream(dataSocket, downStream);
-			trace("Progress: "+progresBytes);
-			dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_PROGRESS, ftpFile, 0, progresBytes));
-		}
-		
-		private function handleDownloadComplete(evt:Event):void
-		{
-			trace("Complete "+dataSocket.bytesAvailable);
-			writeToStream(dataSocket, downStream);
-			dispatchEvent(new FTPTransferEvent(FTPTransferEvent.TRANSFER_COMPLETE, ftpFile, 0, progresBytes));
+			//Locks are bad, maybe other idea?
+			trace("Lock removed!");
+			transferLock = false;
 		}
 	}
 }	
-	
-	
-import pl.maliboo.ftp.CommandSequence;
-import pl.maliboo.ftp.FTPClient;
-import pl.maliboo.ftp.FTPCommand;
-import pl.maliboo.ftp.rfc959.Commands;
-import pl.maliboo.ftp.events.FTPCommandEvent;
-import pl.maliboo.ftp.utils.PassiveSocketInfo;
-
-
-
-class DownloadSequence extends CommandSequence
-{
-	public function DownloadSequence(ftp:FTPClient, fileName:String)
-	{
-		super(ftp);
-		addCommand(new FTPCommand(Commands.PASV)).addEventListener(FTPCommandEvent.REPLY, openDataSocket);
-		addCommand(new FTPCommand(Commands.RETR, [fileName]));
-	}
-	
-	private function openDataSocket(evt:FTPCommandEvent):void
-	{
-		ftp.openDataSocket(PassiveSocketInfo.parseFromReply(evt.reply.rawBody));
-	}
-}
-
-

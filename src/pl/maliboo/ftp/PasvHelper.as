@@ -31,6 +31,7 @@ package pl.maliboo.ftp
 		public function abort():void
 		{
 			commandSequence.abort();
+			ftp.sendCommand(Commands.ABOR);
 			disposeSocket();
 		}
 		
