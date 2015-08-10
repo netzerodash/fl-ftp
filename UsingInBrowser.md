@@ -1,0 +1,1 @@
+To use fl-ftp in browser you must configure [socket policy server](http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html). This library works only in [passive mode](http://en.wikipedia.org/wiki/File_Transfer_Protocol#Connection_methods), so policy files **must** be served on port 843.
